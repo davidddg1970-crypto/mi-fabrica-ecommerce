@@ -1,5 +1,4 @@
 from fastapi import FastAPI, Request, HTTPException
-import requests
 
 app = FastAPI(title="Mi Fabrica E-commerce", version="1.0.0")
 

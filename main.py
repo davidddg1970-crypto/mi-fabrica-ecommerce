@@ -1,5 +1,4 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
+from fastapi import FastAPI, HTTPException, Request
 import requests
 
 app = FastAPI(
@@ -8,31 +7,34 @@ app = FastAPI(
     version="1.0.0"
 )
 
-class LandingRequest(BaseModel):
-    source_url: str
-    product_title: str
-    target_angle: str = "problem_solution"
-    shopify_store: str
-    shopify_token: str
-
 @app.get("/")
 def health_check():
     return {"status": "online", "engine": "NextGen SaaS Core", "version": "1.0.0"}
 
 @app.post("/api/v1/generate-landing")
-def generate_landing(data: LandingRequest):
+async def generate_landing(request: Request):
     try:
+        data = await request.json()
+        
+        source_url = data.get("source_url", "")
+        product_title = data.get("product_title", "Producto Destacado")
+        shopify_store = data.get("shopify_store", "")
+        shopify_token = data.get("shopify_token", "")
+
+        if not shopify_store or not shopify_token:
+            raise HTTPException(status_code=400, detail="Faltan los datos de la tienda o el token de Shopify.")
+
         optimized_copy = {
-            "headline": f"¡Descubre {data.product_title}! La solución definitiva.",
+            "headline": f"¡Descubre {product_title}! La solución definitiva.",
             "subheadline": "Diseñado para ofrecerte el mejor rendimiento y calidad desde el primer día.",
             "cta_text": "COMPRAR AHORA"
         }
 
         api_version = "2026-01"
-        url = f"https://{data.shopify_store}/admin/api/{api_version}/products.json"
+        url = f"https://{shopify_store}/admin/api/{api_version}/products.json"
         
         headers = {
-            "X-Shopify-Access-Token": data.shopify_token,
+            "X-Shopify-Access-Token": shopify_token,
             "Content-Type": "application/json"
         }
 
@@ -46,7 +48,7 @@ def generate_landing(data: LandingRequest):
 
         payload = {
             "product": {
-                "title": data.product_title,
+                "title": product_title,
                 "body_html": html_content,
                 "vendor": "NextGen SaaS AI",
                 "product_type": "Optimized Landing Page",
